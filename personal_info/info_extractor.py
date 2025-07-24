@@ -1,6 +1,7 @@
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableSequence
+import json
 from dotenv import load_dotenv
 import os
 
@@ -24,7 +25,7 @@ def extract_relevant_info(document_text, link_info):
 
     # LLM 설정
     try:
-        llm = ChatOpenAI(model="gpt-4o-mini", api_key=api_key)
+        llm = AzureChatOpenAI(model="gpt-4o-mini", api_key=api_key)
     except Exception as e:
         raise ValueError(f"Failed to initialize LLM: {str(e)}")
 
