@@ -18,6 +18,7 @@ import fitz
 load_dotenv()
 
 def initialize_llm_and_tools():
+    """LLM과 도구들을 초기화하고 튜플 형태로 반환합니다."""
     deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
     if not deployment_name:
         raise ValueError("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME 환경 변수를 .env 파일에 설정해주세요.")
@@ -29,6 +30,10 @@ def initialize_llm_and_tools():
 
 @tool
 def scrape_website_content(url: str) -> str:
+    """
+    주어진 URL의 웹사이트 콘텐츠와, 해당 페이지에 링크된 '의미있는' PDF 파일들의 텍스트를 함께 스크래핑합니다.
+    '직무', '요강', '설명', '기술서' 등의 키워드가 포함된 PDF를 우선적으로 분석합니다.
+    """
     print(f">>> Executing Smart Scraper for URL: {url}")
     scraped_data = []
     chrome_options = webdriver.ChromeOptions()
@@ -154,6 +159,9 @@ class GptResearcherStyleAnalyzer:
         return "최종 보고서 형식의 결과물을 찾을 수 없습니다."
 
 def run_analyzer(company_name: str, job_role: Optional[str] = None, url: Optional[str] = None) -> str:
+    """
+    입력값만으로 에이전트의 모든 설정과 실행을 처리하고 최종 보고서를 반환하는 마스터 함수.
+    """
     print("--- 분석 시스템 초기화 시작 ---")
     llm, tools = initialize_llm_and_tools()
     analyzer = GptResearcherStyleAnalyzer(llm_model=llm, tool_list=tools)
