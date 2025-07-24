@@ -9,13 +9,14 @@ faiss-cpu>=1.8.0
 pymupdf>=1.24.6
 pandas>=2.0.0
 olefile>=0.47
-python-docx>=1.1.2  # for .docx files
+python-docx>=1.1.2
+docx2txt>=0.8          # [추가] .docx 파일 로더를 위한 필수 패키지
 
 # HWP File Parser
 pyhwp>=0.1b15
 
 # Agent Tools
-duckduckgo-search
+ddgs>=5.3.1b1
 wikipedia>=1.4.0
 beautifulsoup4>=4.12.3
 selenium>=4.21.0
