@@ -104,17 +104,34 @@ with st.sidebar:
 # --- 메인 채팅 인터페이스 ---
 chat_container = st.container()
 with chat_container:
+    # 1) 채팅 히스토리 출력
     for msg in st.session_state.memory_hub.interview_session.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+    
+    # 2) 입력창 + 마이크 버튼을 같은 줄에 배치
+    input_col, mic_col = st.columns([10, 1])
+    with input_col:
+        # 여기에 st.chat_input 을 배치
+        user_input = st.chat_input(
+            "면접 질문에 답변하거나 자유롭게 질문해보세요..."
+        )
+    with mic_col:
+        # 버튼 누르면 녹음 토글 (녹음 로직은 toggle_recording() 등에 연결하세요)
+        if st.button("🎤", key="mic"):
+            st.session_state.recording = not st.session_state.get("recording", False)
+            if st.session_state.recording:
+                st.write("🔴 녹음 시작")
+            else:
+                st.write("⏹️ 녹음 중지")
 
-if user_input := st.chat_input("면접 질문에 답변하거나 자유롭게 질문해보세요..."):
+# 3) 텍스트 입력이 들어오면 챗봇 호출 (기존 로직 그대로)
+if user_input:
     with chat_container:
         with st.chat_message("user"):
             st.markdown(user_input)
     with st.spinner("답변을 생성하는 중입니다..."):
         try:
-            # 중복 메시지 방지를 위해 chat_history를 직접 수정
             ai_response = chatbot.get_response(user_input)
             with chat_container:
                 with st.chat_message("assistant"):
