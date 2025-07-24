@@ -4,33 +4,48 @@ from info_extractor import extract_relevant_info
 import os
 import requests
 from bs4 import BeautifulSoup
+import json
 
-def crawl_url(url):
+def crawl_github(username, token=None):
     """
-    Crawl basic information from a URL (GitHub, portfolio, LinkedIn).
-    Returns a string with extracted information or the URL itself if crawling fails.
+    Crawl public GitHub repositories for a user using GitHub API.
+    Args:
+        username (str): GitHub username extracted from URL.
+        token (str): Optional GitHub personal access token.
+    Returns:
+        str: Formatted string of repository names and descriptions.
+    """
+    try:
+        headers = {'Authorization': f'token {token}'} if token else {}
+        response = requests.get(f"https://api.github.com/users/{username}/repos", headers=headers, timeout=5)
+        response.raise_for_status()
+        repos = response.json()
+        repo_info = [f"GitHub Repository: {repo['name']} - {repo.get('description', 'No description')}" for repo in repos if not repo['private']]
+        return "\n".join(repo_info[:5])  # 최대 5개 레포지토리
+    except Exception as e:
+        print(f"Error crawling GitHub {username}: {e}")
+        return f"GitHub: https://github.com/{username}"
+
+def crawl_linkedin(url):
+    """
+    Crawl public LinkedIn profile for basic info and posts (if available).
+    Returns URL if private or scraping fails.
     """
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        # GitHub: 레포지토리 이름 및 설명 추출
-        if 'github.com' in url:
-            repos = soup.find_all('a', {'itemprop': 'name codeRepository'})
-            repo_info = [f"GitHub Repository: {repo.text.strip()}" for repo in repos[:3]]  # 최대 3개
-            return "\n".join(repo_info) if repo_info else f"GitHub: {url}"
-        # LinkedIn: 제한적으로 URL만 포함 (스크래핑 제한)
-        elif 'linkedin.com' in url:
-            return f"LinkedIn: {url}"
-        # 포트폴리오: 프로젝트 이름 또는 설명 추출
-        else:
-            title = soup.find('title')
-            return f"Portfolio: {title.text.strip() if title else url}"
+        ld_json = soup.find('script', {'type': 'application/ld+json'})
+        if ld_json:
+            profile_data = json.loads(ld_json.text)
+            name = profile_data.get('name', 'Unknown')
+            job_title = profile_data.get('jobTitle', 'No job title')
+            return f"LinkedIn Profile: {name} - {job_title}"
+        return f"LinkedIn: {url}"
     except Exception as e:
-        print(f"Error crawling {url}: {e}")
-        return f"URL: {url}"
+        print(f"Error crawling LinkedIn {url}: {e}")
+        return f"LinkedIn: {url}"
 
 def main(file_paths, links):
     # 문서 로딩 (여러 PDF/DOCX 파일)
@@ -42,8 +57,15 @@ def main(file_paths, links):
 
     # 링크 정보 크롤링
     link_info = []
+    github_token = os.getenv("GITHUB_TOKEN")
     for link in links:
-        link_info.append(crawl_url(link))
+        if 'github.com' in link:
+            username = link.split('github.com/')[-1].split('/')[0]
+            link_info.append(crawl_github(username, github_token))
+        elif 'linkedin.com' in link:
+            link_info.append(crawl_linkedin(link))
+        else:
+            link_info.append(f"Portfolio: {link}")
     link_info = "\n".join(link_info) if link_info else ""
 
     # 정보 추출
