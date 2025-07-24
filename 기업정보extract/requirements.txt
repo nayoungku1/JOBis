@@ -21,7 +21,7 @@ selenium>=4.21.0
 requests>=2.32.0
 
 # Web App Framework
-streamlit>=1.35.0
+streamlit
 
 # Environment Management
 python-dotenv>=1.0.1
