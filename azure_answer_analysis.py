@@ -10,11 +10,11 @@ from langchain_openai import AzureOpenAIEmbeddings
 
 load_dotenv()
 # --- 환경 변수 로드 ---
-# load_dotenv()
-# AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-# AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-# AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
-# AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+load_dotenv()
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
 
 # --- 클라이언트 초기화 ---
 client = AzureChatOpenAI(

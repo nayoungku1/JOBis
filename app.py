@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-
 from chatbot_core import ChatbotCore, MemoryHub
 from agentA import run_analyzer
 from build_faiss_db import build_or_update_vector_db
@@ -10,6 +9,7 @@ load_dotenv()
 st.set_page_config(page_title="AI 면접 코치", layout="wide")
 st.title("AI 면접 코치 🤖")
 
+# 세션 상태 초기화
 if "memory_hub" not in st.session_state:
     st.session_state["memory_hub"] = MemoryHub(
         interview_session={"chat_history": [{"role": "assistant", "content": "안녕하세요! 먼저 사이드바에 정보를 입력하고 자료를 업로드 해주세요."}]}
@@ -40,8 +40,6 @@ with st.sidebar:
         elif not personal_files:
             st.warning("개인 맞춤 분석을 위해 하나 이상의 개인 파일을 업로드해주세요.")
         else:
-            # --- 전체 워크플로우 실행 ---
-            # 1. 웹 리서치
             with st.spinner("1/3 | 최신 기업 및 시장 정보를 분석 중입니다..."):
                 try:
                     report = run_analyzer(
@@ -54,28 +52,30 @@ with st.sidebar:
                     st.error(f"기업 분석 중 오류 발생: {e}")
                     st.stop()
             
-            # 2. 개인 문서 요약
             with st.spinner("2/3 | 업로드된 개인 문서를 분석하고 있습니다..."):
                 try:
-                    # agentA가 가져온 보고서를 JD로 사용하여 개인 정보 요약
                     job_description_from_report = report 
                     chatbot.process_personal_documents(personal_files, job_description_from_report)
                 except Exception as e:
                     st.error(f"개인 문서 처리 중 오류 발생: {e}")
                     st.stop()
 
-            # 3. 맞춤 질문 생성
             with st.spinner("3/3 | 모든 정보를 종합하여 맞춤 면접 질문을 생성합니다..."):
-                chatbot.generate_interview_questions()
-                
-                initial_message = f"✅ **'{st.session_state.company_name}'({st.session_state.job_role})** 직무에 대한 모든 준비가 완료되었습니다!\n\n"
-                if chatbot.memory.interview_session.generated_questions:
-                    initial_message += "**생성된 맞춤 면접 질문:**\n"
-                    for i, q in enumerate(chatbot.memory.interview_session.generated_questions[:5]):
-                        initial_message += f"- {q}\n"
-                    initial_message += "\n이제 아래 채팅창에서 면접 시뮬레이션을 시작할 수 있습니다. 첫 번째 질문에 답변해보세요!"
-                
-                st.session_state.memory_hub.interview_session.chat_history.append({"role": "assistant", "content": initial_message})
+                try:
+                    chatbot.generate_interview_questions()
+                    initial_message = (
+                        f"✅ **'{st.session_state.company_name}'({st.session_state.job_role})** 직무에 대한 모든 준비가 완료되었습니다!\n\n"
+                        "**생성된 맞춤 면접 질문:**\n"
+                    )
+                    # for i, q in enumerate(chatbot.memory.interview_session.generated_questions[:5]):
+                    #     initial_message += f"- {q}\n"
+                    initial_message += "\n면접을 시작하시겠습니까? '시작할게'라고 입력해주세요."
+                    st.session_state.memory_hub.interview_session.chat_history = [
+                        {"role": "assistant", "content": initial_message}
+                    ]  # 초기화하여 중복 방지
+                except Exception as e:
+                    st.error(f"질문 생성 중 오류 발생: {e}")
+                    st.stop()
             st.rerun()
 
     st.divider()
@@ -102,11 +102,25 @@ with st.sidebar:
             st.warning("업로드할 파일이 없습니다.")
 
 # --- 메인 채팅 인터페이스 ---
-for msg in chatbot.memory.interview_session.chat_history:
-    st.chat_message(msg["role"]).write(msg["content"])
+chat_container = st.container()
+with chat_container:
+    for msg in st.session_state.memory_hub.interview_session.chat_history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
 if user_input := st.chat_input("면접 질문에 답변하거나 자유롭게 질문해보세요..."):
-    st.chat_message("user").write(user_input)
+    with chat_container:
+        with st.chat_message("user"):
+            st.markdown(user_input)
     with st.spinner("답변을 생성하는 중입니다..."):
-        ai_response = chatbot.get_response(user_input)
+        try:
+            # 중복 메시지 방지를 위해 chat_history를 직접 수정
+            ai_response = chatbot.get_response(user_input)
+            with chat_container:
+                with st.chat_message("assistant"):
+                    st.markdown(ai_response)
+        except Exception as e:
+            with chat_container:
+                with st.chat_message("assistant"):
+                    st.error(f"응답 생성 중 오류 발생: {e}")
     st.rerun()
